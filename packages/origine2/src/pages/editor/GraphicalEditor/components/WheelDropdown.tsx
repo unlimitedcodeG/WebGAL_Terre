@@ -1,5 +1,6 @@
 import { useEffect, useRef, useCallback } from 'react';
 import { Dropdown, Option, DropdownProps } from "@fluentui/react-components";
+import debounce from "lodash.debounce";
 
 interface WheelDropdownProps extends DropdownProps {
   options: Map<string, string>;
@@ -10,6 +11,14 @@ interface WheelDropdownProps extends DropdownProps {
 export default function WheelDropdown({ options, value, onValueChange, ...restProps }: WheelDropdownProps) {
   const dropdownRef = useRef<HTMLButtonElement>(null);
   const optionKeys = Array.from(options.keys());
+
+  // 防抖处理，500ms内只会触发一次值变更
+  const debouncedOnValueChange = useCallback(
+    debounce((newTarget: string) => {
+      onValueChange(newTarget);
+    }, 500), // 设置防抖时间为 500ms
+    [onValueChange]
+  );
 
   const handleWheel = useCallback(
     (event: WheelEvent) => {
@@ -31,9 +40,10 @@ export default function WheelDropdown({ options, value, onValueChange, ...restPr
         : (currentIndex + direction + options.size) % options.size;
 
       const newTarget = optionKeys[newIndex];
-      onValueChange(newTarget);
+      // 调用防抖后的函数，减少网络请求和同步指令的发送频率
+      debouncedOnValueChange(newTarget);
     },
-    [value, onValueChange, options.size, optionKeys]
+    [value, debouncedOnValueChange, options.size, optionKeys]
   );
 
   useEffect(() => {
